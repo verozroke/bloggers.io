@@ -1,23 +1,75 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or your chosen database provider
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id         String    @unique @id @default(uuid())
+  username   String    @unique
+  name       String
+  bio        String?
+  country    String
+  posts      Post[]
+  likes      Like[]
+  following  Follower[] @relation(name: "Following")  
+  followers  Follower[] @relation(name: "Followers")  
+  avatarId       String?      @unique
+  avatar         Image?       @relation("UserAvatarToImage", fields: [avatarId], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
 
 model Post {
-  id String @id @default(uuid())
-  title String
-  content String
-  updatedAt DateTime @updatedAt
+  id         String    @unique @id @default(uuid())
+  title      String
+  content    String
+  image       Image?    @relation("ImageToPost")
+  likes      Like[]
+  author     User       @relation(fields: [authorId], references: [id])
+  authorId   String     // Foreign key for the author
+  tags       Tag[]      @relation("PostTags")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Like {
+  id        String   @unique @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   // Foreign key for the user
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String   @unique // Foreign key for the post
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Follower {
+  id         String   @unique @id @default(uuid())
+  user       User     @relation(name: "Following", fields: [userId], references: [id])
+  userId     String   // Foreign key for the user being followed
+  follower   User     @relation(name: "Followers", fields: [followerId], references: [id])
+  followerId String   // Foreign key for the follower
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Image {
+  id              String     @unique @default(uuid())
+  url             String
+  postId          String?    @unique
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  post            Post?      @relation("ImageToPost", fields: [postId], references: [id])
+  userAvatar      User?      @relation("UserAvatarToImage")
+}
+
+model Tag {
+  id        String   @unique @id @default(uuid())
+  name      String   @unique
+  posts     Post[]   @relation("PostTags")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
